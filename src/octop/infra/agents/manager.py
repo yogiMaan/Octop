@@ -81,7 +81,7 @@ from octop.infra.skills.workspace_catalog import (
     list_workspace_skill_summaries,
     repair_workspace_skill_manifests,
 )
-from octop.infra.utils.locale import Locale
+from octop.infra.utils.locale import Locale, resolve_user_locale
 from octop.infra.utils.ulid import new_short_id
 
 if TYPE_CHECKING:
@@ -3359,6 +3359,10 @@ class AgentManager:
 
         harness_cfg = HarnessAgentConfig(
             name=_memory_namespace(row.agent_id),
+            language=resolve_user_locale(
+                user_repo=self._repos.user_repo,
+                user_id=self._connector_uid_for(row) or 0,
+            ),
             workspace_dir=harness_workspace,
             system_files_path=system_files_path_from_config(cfg),
             # Memory aux LLM (extraction / promotion) needs a concrete ref; fall

@@ -762,6 +762,35 @@ def test_build_harness_config_enables_bootstrap_for_expert_template(manager: Age
     assert cfg.bootstrap_enabled is True
 
 
+@pytest.mark.parametrize("locale", ["en", "zh"])
+@pytest.mark.parametrize("shared", [False, True])
+def test_workspace_templates_follow_account_locale(
+    manager: AgentManager, locale: str, shared: bool
+) -> None:
+    from dataclasses import replace
+
+    from deepagents.backends import FilesystemBackend
+    from octop_harness.backends.workspace import BackendWorkspace
+
+    user_id = manager._repos.user_repo.create(username="owner", role="user", locale=locale)
+    row = replace(_row(), user_id=None if shared else user_id)
+    if shared:
+        manager._connector_user_override[row.agent_id] = user_id
+    cfg = manager._build_harness_config(row)
+    assert cfg.language == locale
+    workspace = BackendWorkspace(
+        FilesystemBackend(root_dir=str(cfg.workspace_dir), virtual_mode=False), cfg.workspace_dir
+    )
+    workspace.init_workspace(
+        language=cfg.language,
+        include_skills=False,
+        include_agents=False,
+    )
+    instructions = (Path(cfg.workspace_dir) / "AGENTS.md").read_text(encoding="utf-8")
+    assert ("记忆系统" in instructions) is (locale == "zh")
+    assert ("Memory System" in instructions) is (locale == "en")
+
+
 def test_build_harness_config_disables_bootstrap_for_team_host(manager: AgentManager) -> None:
     from dataclasses import replace
 
